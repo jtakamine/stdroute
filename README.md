@@ -12,4 +12,4 @@ or
 
 Both of the above will pipe someProgram's output to stdroute, which in turn forwards the output to www.example.com:8000/jsonrpc (1 RPC call per line):
 
-    { "method": "write", "params": ["someProgram's output"], "id": 1}  -->  www.example.com:8000/jsonrpc
+    { "method": "Stdin.Write", "params": ["someProgram's output"], "id": 1}  -->  www.example.com:8000/jsonrpc

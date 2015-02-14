@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -23,14 +24,15 @@ func TestMain(t *testing.T) {
 
 type TestRPC struct{}
 
-func (rpc *TestRPC) Write(msg string, success *bool) (err error) {
-	fmt.Printf("received: %s\n", msg)
-	_true := true
-	success = &_true
+func (rpc *TestRPC) Write(m string, success *bool) (err error) {
+	fmt.Printf("received \"%s\"\n", m)
+	*success = false
+	if strings.Contains(m, "true") {
+		*success = true
+	}
 
 	return nil
 }
-
 func listen(t *testing.T, port int) {
 	server := rpc.NewServer()
 	err := server.RegisterName("Stdin", &TestRPC{})
@@ -59,7 +61,7 @@ func listen(t *testing.T, port int) {
 }
 
 func testGoRun(t *testing.T, port int) {
-	c1 := exec.Command("echo", "line 1\nline 2\nline 3")
+	c1 := exec.Command("echo", "line 1\nline 2\nline 3\nline 4(return true)\nline 5\nline 6(return true)\nline 7\nline 8\nline 9(return true)")
 	c2 := exec.Command("go", "run", "main.go", "localhost:"+strconv.Itoa(port))
 
 	r, w := io.Pipe()

@@ -6,17 +6,29 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/rpc"
 	"net/rpc/jsonrpc"
 	"os"
+	"strings"
 	"time"
 )
+
+var client *rpc.Client
 
 func main() {
 	dest := parseArgs()
 
+	conn, err := net.DialTimeout("tcp", dest, time.Second*5)
+	if err != nil {
+		panic(err)
+	}
+
+	client = jsonrpc.NewClient(conn)
+
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		line, err := reader.ReadString('\n')
+		line = strings.TrimSuffix(line, "\n")
 		if err != nil {
 			if err == io.EOF {
 				fmt.Println("Stdin closed. Exiting.")
@@ -25,7 +37,11 @@ func main() {
 			panic(err)
 		}
 
-		route(line, dest)
+		err = route(line, dest)
+		if err != nil {
+			fmt.Printf("%v", err)
+			panic(err)
+		}
 	}
 }
 
@@ -35,10 +51,10 @@ var parseArgs = func() (dest string) {
 
 	dest = ""
 	switch len(args) {
-	case 1:
-		dest = args[0]
 	case 0:
 		dest = os.Getenv("STDROUTE_DEST")
+	case 1:
+		dest = args[0]
 	}
 
 	if dest == "" {
@@ -49,16 +65,10 @@ var parseArgs = func() (dest string) {
 	return dest
 }
 
-func route(msg string, dest string) (err error) {
-	conn, err := net.DialTimeout("tcp", dest, time.Second*5)
-	if err != nil {
-		return err
-	}
-	c := jsonrpc.NewClient(conn)
-
+func route(m string, dest string) (err error) {
 	var success bool
 
-	err = c.Call("Stdin.Write", msg, &success)
+	err = client.Call("Stdin.Write", m, &success)
 	if err != nil {
 		return err
 	}

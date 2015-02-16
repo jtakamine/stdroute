@@ -37,6 +37,7 @@ func main() {
 			panic(err)
 		}
 
+		fmt.Println(line)
 		err = route(line, dest, method)
 		if err != nil {
 			fmt.Printf("%v", err)

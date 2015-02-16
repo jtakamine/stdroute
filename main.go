@@ -16,7 +16,7 @@ import (
 var client *rpc.Client
 
 func main() {
-	dest := parseArgs()
+	dest, method := parseArgs()
 
 	conn, err := net.DialTimeout("tcp", dest, time.Second*5)
 	if err != nil {
@@ -37,7 +37,7 @@ func main() {
 			panic(err)
 		}
 
-		err = route(line, dest)
+		err = route(line, dest, method)
 		if err != nil {
 			fmt.Printf("%v", err)
 			panic(err)
@@ -45,30 +45,26 @@ func main() {
 	}
 }
 
-var parseArgs = func() (dest string) {
+var parseArgs = func() (dest string, method string) {
+	flag.StringVar(&dest, "dest", "", "The destination endpoint to which this program's Stdin will be forwarded")
+	flag.StringVar(&method, "method", "", "The RPC method to call when forwarding a message from Stdin")
+
 	flag.Parse()
-	args := flag.Args()
+	if dest == "" || method == "" {
+		usg := "Example Usage:\n\n"
+		usg += "\t$ someProgram | stdroute -dest www.example.com:9090/jsonrpc -method Log.Write"
 
-	dest = ""
-	switch len(args) {
-	case 0:
-		dest = os.Getenv("STDROUTE_DEST")
-	case 1:
-		dest = args[0]
-	}
-
-	if dest == "" {
-		fmt.Println("Example Usage:\n\n\t$ someProgram | stdroute www.example.com:8000/jsonrpc\n\n\tor\n\n\t$ export STDROUTE_DEST=www.example.com:8000/jsonrpc\n\t$ someProgram | stdroute\n")
+		fmt.Println(usg)
 		os.Exit(1)
 	}
 
-	return dest
+	return dest, method
 }
 
-func route(m string, dest string) (err error) {
+func route(m string, dest string, method string) (err error) {
 	var success bool
 
-	err = client.Call("Stdin.Write", m, &success)
+	err = client.Call(method, m, &success)
 	if err != nil {
 		return err
 	}
